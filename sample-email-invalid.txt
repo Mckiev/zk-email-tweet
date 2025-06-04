@@ -1,0 +1,17 @@
+From: account-security-noreply@twitter.com
+To: user@example.com
+Subject: New login alert
+Date: Wed, 4 Jun 2025 14:30:00 +0000
+
+Hi there,
+
+We noticed a login to your account @unauthorized_user from a new device. Was this you?
+
+Device: Chrome on MacOS
+Location: San Francisco, CA
+Time: June 4, 2025 at 2:30 PM UTC
+
+If this was you, you can ignore this email. If not, please secure your account immediately.
+
+Thanks,
+The Twitter Security Team
