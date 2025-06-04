@@ -1,5 +1,6 @@
-// @ts-ignore
+// @ts-expect-error snarkjs types not fully available
 import * as snarkjs from "snarkjs";
+import { verifyTwitterEmailAuthenticity } from './emailVerification';
 
 // Simple hash function to match our circuit (no modulo for circuit compatibility)
 export function hashUsername(username: string, salt: number): number {
@@ -25,14 +26,70 @@ export function stringToCharArray(str: string, maxLength: number): number[] {
   return result;
 }
 
-// Extract username from Twitter login notification email
-export function extractUsernameFromEmail(emailContent: string): string | null {
-  const pattern = /We noticed a login to your account @(\w+) from a new device/;
-  const match = emailContent.match(pattern);
-  return match ? match[1] : null;
+// Extract username from Twitter login notification email (re-export from emailVerification)
+export { extractUsernameFromEmail } from './emailVerification';
+
+// Generate ZK proof with email verification for Twitter login notifications
+export async function generateTwitterEmailProof(
+  emailContent: string,
+  allowedUsernames: string[]
+): Promise<{
+  proof: any;
+  publicSignals: any;
+  verifiedUsername?: string;
+  dkimVerified: boolean;
+  warning?: string;
+} | null> {
+  try {
+    console.log("Starting Twitter email verification...");
+    
+    // 1. Verify email authenticity with DKIM
+    const emailVerification = await verifyTwitterEmailAuthenticity(emailContent);
+    
+    if (!emailVerification.success) {
+      console.error("Email verification failed:", emailVerification.error);
+      return null;
+    }
+    
+    const { extractedUsername, dkimResult, error } = emailVerification;
+    
+    if (!extractedUsername) {
+      console.error("No username extracted from email");
+      return null;
+    }
+    
+    console.log("Extracted username:", extractedUsername);
+    console.log("DKIM verified:", !!dkimResult);
+    
+    // 2. Check if username is in allowed list
+    if (!allowedUsernames.includes(extractedUsername)) {
+      console.error(`Username @${extractedUsername} not in allowed list:`, allowedUsernames);
+      return null;
+    }
+    
+    // 3. For now, use the simple proof system until we have the full email circuit
+    // In a full implementation, this would use the DKIM verification in the circuit
+    const simpleProof = await generateUsernameProof(extractedUsername, allowedUsernames);
+    
+    if (!simpleProof) {
+      console.error("Failed to generate proof");
+      return null;
+    }
+    
+    return {
+      ...simpleProof,
+      verifiedUsername: extractedUsername,
+      dkimVerified: !!dkimResult,
+      warning: error // Include any DKIM warnings
+    };
+    
+  } catch (error) {
+    console.error("Error generating Twitter email proof:", error);
+    return null;
+  }
 }
 
-// Generate real ZK proof for username verification
+// Generate simple username proof (legacy function for compatibility)
 export async function generateUsernameProof(
   username: string,
   allowedUsernames: string[]
@@ -60,7 +117,7 @@ export async function generateUsernameProof(
       salt: salt.toString()
     };
     
-    console.log("Generating real ZK proof with input:", input);
+    console.log("Generating simple ZK proof with input:", input);
     
     // Use the compiled circuit files
     const wasmPath = "/circuits/twitter-login_js/twitter-login.wasm";

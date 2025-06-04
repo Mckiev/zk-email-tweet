@@ -22,6 +22,7 @@
     "@types/snarkjs": "^0.7.9",
     "@zk-email/circuits": "6.3.3-nightly-20250214",
     "@zk-email/helpers": "^6.4.2",
+    "buffer": "^6.0.3",
     "circomlib": "^2.0.5",
     "convex": "^1.23.0",
     "lucide-react": "^0.511.0",

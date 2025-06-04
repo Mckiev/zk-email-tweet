@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { extractUsernameFromEmail, generateUsernameProof, mockGenerateProof } from "@/utils/zkProof";
+import { extractUsernameFromEmail, generateTwitterEmailProof } from "@/utils/zkProof";
 
 export function ZkEmailVerifier() {
   const [email, setEmail] = useState("");
@@ -12,6 +12,8 @@ export function ZkEmailVerifier() {
     proofGenerated?: boolean;
     proof?: any;
     extractedUsername?: string;
+    dkimVerified?: boolean;
+    warning?: string;
   } | null>(null);
 
   const addUsername = () => {
@@ -50,51 +52,57 @@ export function ZkEmailVerifier() {
     setVerificationResult(null);
 
     try {
-      // 1. Extract username from email using regex
-      const extractedUsername = extractUsernameFromEmail(email);
-      
-      if (!extractedUsername) {
-        setVerificationResult({
-          success: false,
-          message: "Email does not contain expected Twitter login notification pattern"
-        });
-        return;
-      }
-
-      console.log("Extracted username:", extractedUsername);
-      console.log("Allowed usernames:", allowedUsernames);
-
-      // 2. Generate real ZK proof that username is in allowlist
-      const proofResult = await generateUsernameProof(extractedUsername, allowedUsernames);
+      // Use the new Twitter email verification with DKIM
+      const proofResult = await generateTwitterEmailProof(email, allowedUsernames);
       
       if (!proofResult) {
+        // Try fallback to simple pattern extraction
+        const extractedUsername = extractUsernameFromEmail(email);
+        
+        if (!extractedUsername) {
+          setVerificationResult({
+            success: false,
+            message: "Email does not contain expected Twitter login notification pattern. Please ensure the email is a valid Twitter login notification from twitter.com or x.com."
+          });
+          return;
+        }
+
         setVerificationResult({
           success: false,
-          message: `Failed to generate ZK proof - username @${extractedUsername} may not be in the allowed list`,
+          message: `Username @${extractedUsername} found but verification failed. Ensure the email has proper DKIM signatures and is from Twitter/X.com.`,
           extractedUsername
         });
         return;
       }
 
+      const { verifiedUsername, dkimVerified, warning, proof, publicSignals } = proofResult;
+
       // Check if proof indicates valid username (publicSignals[0] should be 1)
-      const isValid = proofResult.publicSignals && proofResult.publicSignals[0] === "1";
+      const isValid = publicSignals && publicSignals[0] === "1";
       
       if (!isValid) {
         setVerificationResult({
           success: false,
-          message: `Username @${extractedUsername} is not in the allowed list`,
-          extractedUsername
+          message: `Username @${verifiedUsername} is not in the allowed list`,
+          extractedUsername: verifiedUsername,
+          dkimVerified
         });
         return;
       }
 
       // 3. Verification successful with ZK proof
+      const successMessage = dkimVerified 
+        ? `Successfully verified with DKIM! Username is in the allowed list without revealing which one.`
+        : `Username verified (DKIM warning: ${warning}). Consider using a properly signed .eml file for full cryptographic verification.`;
+
       setVerificationResult({
         success: true,
-        message: `Successfully verified! Username is in the allowed list without revealing which one.`,
+        message: successMessage,
         proofGenerated: true,
-        proof: proofResult.proof,
-        extractedUsername
+        proof,
+        extractedUsername: verifiedUsername,
+        dkimVerified,
+        warning
       });
 
     } catch (error) {
@@ -113,7 +121,7 @@ export function ZkEmailVerifier() {
         <div className="card-body">
           <h2 className="card-title text-2xl mb-4">🔐 ZK Email Verifier</h2>
           <p className="text-base-content/70 mb-6">
-            Upload a Twitter login notification email to verify the username is in your allowed list using zero-knowledge proofs.
+            Upload a Twitter login notification email (.eml format preferred) to verify the username is in your allowed list using zero-knowledge proofs with DKIM verification.
           </p>
 
           {/* Username Management */}
@@ -188,7 +196,7 @@ export function ZkEmailVerifier() {
 
           {/* Verify Button */}
           <button
-            onClick={verifyEmail}
+            onClick={() => void verifyEmail()}
             disabled={!email || isVerifying}
             className="btn btn-primary btn-lg w-full"
           >
@@ -223,7 +231,15 @@ export function ZkEmailVerifier() {
                     <div className="text-xs space-y-1">
                       <p><strong>Protocol:</strong> {verificationResult.proof?.protocol}</p>
                       <p><strong>Curve:</strong> {verificationResult.proof?.curve}</p>
+                      <p className={`${verificationResult.dkimVerified ? 'text-success' : 'text-warning'}`}>
+                        <strong>DKIM Verified:</strong> {verificationResult.dkimVerified ? 'Yes ✅' : 'No ⚠️'}
+                      </p>
                       <p className="text-success"><strong>Privacy:</strong> Username verified without revealing which one!</p>
+                      {verificationResult.warning && (
+                        <p className="text-warning text-xs">
+                          <strong>Warning:</strong> {verificationResult.warning}
+                        </p>
+                      )}
                     </div>
                     <details className="mt-2">
                       <summary className="cursor-pointer text-xs opacity-70">View proof details</summary>

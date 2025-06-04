@@ -1,0 +1,32 @@
+From: info@twitter.com
+To: user@example.com
+Subject: Login alert for @someotheruser
+Date: Wed, 4 Jun 2025 10:00:00 +0000
+Message-ID: <123456@twitter.com>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=twitter.com; s=20230601; 
+	bh=abc123def456ghi789==; h=from:to:subject:date:message-id;
+	b=sample-signature-here-would-be-much-longer-in-real-email==
+Return-Path: <noreply@twitter.com>
+Content-Type: text/html; charset=UTF-8
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Twitter Login Alert</title>
+</head>
+<body>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Login Alert</h2>
+        <p>Hello,</p>
+        <p>We noticed a login to your account @someotheruser from a new device. Was this you?</p>
+        <p>If this was you, you can ignore this email. If not, please secure your account immediately.</p>
+        <p>Device information:</p>
+        <ul>
+            <li>Browser: Chrome on macOS</li>
+            <li>Location: San Francisco, CA</li>
+            <li>Time: June 4, 2025 at 10:00 AM PST</li>
+        </ul>
+        <p>Best regards,<br>The Twitter Team</p>
+    </div>
+</body>
+</html>
