@@ -122,7 +122,7 @@ export async function verifyTwitterEmailAuthenticity(emailContent: string): Prom
 
 // Generate circuit inputs for email verification (placeholder for future implementation)
 export async function generateEmailCircuitInputs(
-  dkimResult: DKIMVerificationResult,
+  _dkimResult: DKIMVerificationResult,
   maxHeadersLength: number = 1024,
   maxBodyLength: number = 2048
 ): Promise<any> {

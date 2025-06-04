@@ -1,4 +1,3 @@
-// @ts-expect-error snarkjs types not fully available
 import * as snarkjs from "snarkjs";
 import { verifyTwitterEmailAuthenticity } from './emailVerification';
 
